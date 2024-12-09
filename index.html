@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Labyrinthe aléatoire</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton+SC&family=League+Spartan:wght@100..900&display=swap" rel="stylesheet">
+    <style>
+        canvas {
+            margin: 0 1vw; 
+            display: block;
+            border: 0px solid black;
+            justify-content: end;
+            
+        }
+        * {
+            scroll-behavior: smooth;
+            font-family: "Anton SC";
+            background-color: black;
+            
+        }
+        #principal {
+            display: flex;
+            max-width: 100vw;
+            justify-content: space-between;
+            
+        }
+        #titre {
+            height: 10vw;
+            text-align: left;
+            font-size: 15vh;
+            margin: 0 1vw;
+            margin-right: 7vw;
+            padding: 0;
+            color: rgb(211, 7, 7);
+            border-width: 10px;
+            border-color: black;
+        }
+        .bouton {
+            align-items: end;
+            background-color: rgb(255, 255, 255);
+            padding: 5px;
+            color: rgb(0, 0, 0);
+            
+        }
+        #one {
+            display: flex;
+            justify-content: space-between;
+            
+        }
+        #three {
+            height: 75vh;
+        }
+        #meilleurScore {
+            position: fixed;
+            bottom: 50px; /* Juste au-dessus du chronomètre */
+            left: 10px;
+            font-size: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px;
+        }
+        #toggleMusic {
+            position: fixed;
+            bottom: 100px; /* Juste au-dessus du chronomètre */
+            left: 10px;
+            font-size: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px;
+        }
+
+        img {
+            background-color: white;
+            width: 2vw;
+            text-align: center;
+            padding: 0;
+            margin: 0;
+        }
+        .reload {
+            background-color: white;
+            align-items: center;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="principal">
+        <div id="one">
+            <div id="two">
+                <h1 id="titre">The Maze</h1>
+                <div id="message" style="display: none; color: green; font-size: 1.5vw; text-align: left; margin-top: 20px; margin-left: 2vw;"></div>
+                <div id="three"></div>
+            </div id= "four" ><erreur volontaire></erreur>
+            <button id="facile" class="bouton">Facile</button>
+            <canvas id="canvas-facile" width="600" height="600" style="display: none;"></canvas>
+            <button id="moyen" class="bouton">Moyen</button>
+            <canvas id="canvas-moyen" width="600" height="600" style="display: none;"></canvas>
+            <button id="difficile" class="bouton">Difficile</button>
+            <canvas id="canvas-difficile" width="600" height="600" style="display: none;"></canvas>
+            <button id="expert" class="bouton">Expert</button>
+            <canvas id="canvas-expert" width="600" height="600" style="display: none;"></canvas>
+            <button id="legendaire" class="bouton">Légendaire</button>
+            <canvas id="canvas-legendaire" width="600" height="600" style="display: none;"></canvas>
+            
+
+            
+        </div>
+
+        <canvas id="canvascanvas" width="600" height="600" style="display: none;"></canvas>
+        <button id="toggleMusic">🔇</button>
+        <audio id="musique" loop>
+            <source src="the-maze-3_jT6AhRni.mp3" type="audio/mp3">
+        </audio>
+        <div id="meilleurScore">
+            Best score : <span id="score"></span>
+            <button id="resetStorage" class="reload"><img src="reload_4983234.png" alt="reload score"></button>
+        </div>
+        <div id="chronometre" style="position: fixed; bottom: 10px; left: 10px; font-size: 20px; background-color: rgba(0, 0, 0, 0.7); color: white; padding: 5px;"></div>
+    </div>
+<script>
+
+const boutonMusique = document.getElementById("toggleMusic");
+        const musique = document.getElementById("musique");
+        let musiqueActive = false;
+
+        boutonMusique.addEventListener("click", () => {
+            if (!musiqueActive) {
+                musique.play();
+                boutonMusique.textContent = "🔊";
+            } else {
+                musique.pause();
+                boutonMusique.textContent = "🔇";
+            }
+            musiqueActive = !musiqueActive;
+        });
+
+
+
+
+
+
+    const canvas = document.getElementById("canvascanvas");
+    const canva = canvas.getContext("2d");
+    const messageDiv = document.getElementById("message");
+    const chronometreDiv = document.getElementById("chronometre");
+    const meilleurScoreDiv = document.getElementById("score");
+
+    let rows, cols, grid, cellWidth, cellHeight;
+    let x = 1, y = 1;
+    let timer = 0;
+    let timerInterval;
+    let chronometreDemarre = false;
+
+    function afficherCanvas(boutonId, r, c) {
+        const canvas = document.getElementById(`canvas-${boutonId}`);
+        const canva = canvas.getContext("2d");
+
+        document.querySelectorAll("canvas").forEach(c => c.style.display = "none");
+        canvas.style.display = "block";
+
+        rows = r;
+        cols = c;
+        x = 1; 
+        y = 1; 
+
+        
+        genererLabyrinthe(rows, cols);
+        drawLabyrinthe(canva, canvas);
+        drawCharacter(canva, x, y);  // Dessin du personnage
+        chronometreDemarre = false;
+            timer = 0;
+            clearInterval(timerInterval);
+            chronometreDiv.textContent = "Time : 0m 0s";
+
+            const niveau = getNiveau(boutonId);
+            let meilleurScore = localStorage.getItem(niveau);
+            meilleurScoreDiv.textContent = meilleurScore ? formatTemps(meilleurScore) : "--";
+    }
+
+
+        
+
+    function genererLabyrinthe(rows, cols) {
+        grid = Array.from({ length: rows }, () => Array(cols).fill(1));
+        function creuser(row, col) {
+            grid[row][col] = 0;
+            const directions = ["up", "down", "left", "right"].sort(() => Math.random() - 0.5);
+            for (let direction of directions) {
+                let newRow = row, newCol = col;
+                if (direction === "up" && row > 2) newRow -= 2;
+                if (direction === "down" && row < rows - 2) newRow += 2;
+                if (direction === "left" && col > 2) newCol -= 2;
+                if (direction === "right" && col < cols - 2) newCol += 2;
+                if (grid[newRow][newCol] === 1) {
+                    grid[(row + newRow) / 2][(col + newCol) / 2] = 0;
+                    creuser(newRow, newCol);
+                }
+            }
+        }
+        creuser(1, 1);
+        grid[rows - 2][cols - 1] = 0;
+        cellWidth = canvas.width / cols;
+        cellHeight = canvas.height / rows;
+    }
+
+    function drawLabyrinthe(canva, canvas) {
+        canva.clearRect(0, 0, canvas.width, canvas.height);
+        for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < cols; j++) {
+                canva.fillStyle = grid[i][j] === 1 ? "black" : "white";
+                canva.fillRect(j * cellWidth, i * cellHeight, cellWidth, cellHeight);
+            }
+        }
+    }
+
+
+    function drawCharacter(canva, x, y) {
+        canva.fillStyle = "red";
+        canva.beginPath();
+        canva.arc(
+            x * cellWidth + cellWidth / 2, 
+            y * cellHeight + cellHeight / 2, 
+            cellWidth / 3, 
+            0, 
+            Math.PI * 2
+        );
+        canva.fill();
+    }
+
+    function demarrerChronometre() {
+        if (!chronometreDemarre) {
+            timerInterval = setInterval(() => {
+                timer++;
+                chronometreDiv.textContent = `Time : ${formatTemps(timer)}`;
+            }, 1000);
+            chronometreDemarre = true;
+            messageDiv.style.display = "none"; 
+        }
+    }
+
+    function formatTemps(temps) {
+        const minutes = Math.floor(temps / 60);
+        const secondes = temps % 60;
+        return `${minutes}m ${secondes}s`;
+    }
+
+    function verifierVictoire() {
+        if (x === cols - 1 && y === rows - 2) {
+            clearInterval(timerInterval);
+            afficherMessage(`Well done, you won the maze! Time elapsed: ${formatTemps(timer)}`);
+            const niveau = getNiveau();
+            let meilleurScore = localStorage.getItem(niveau);
+            if (!meilleurScore || timer < meilleurScore) {
+                localStorage.setItem(niveau, timer);
+                meilleurScoreDiv.textContent = formatTemps(timer);
+            }
+        }
+    }
+
+    function afficherMessage(message) {
+        messageDiv.textContent = message;
+        messageDiv.style.display = "block";
+    }
+
+    function getNiveau() {
+        if (rows === 31) return "facile";
+        if (rows === 41) return "moyen";
+        if (rows === 61) return "difficile";
+        if (rows === 81) return "expert";
+        return "legendaire";
+    }
+
+    window.addEventListener("keydown", function(event) {
+        const canvas = document.querySelector("canvas[style*='display: block']");
+        const canva = canvas.getContext("2d");
+
+        event.preventDefault();  
+        let newX = x, newY = y;
+
+        if (event.key === "ArrowRight" && grid[y][x + 1] === 0) newX++;
+        if (event.key === "ArrowLeft" && grid[y][x - 1] === 0) newX--;
+        if (event.key === "ArrowDown" && grid[y + 1][x] === 0) newY++;
+        if (event.key === "ArrowUp" && grid[y - 1][x] === 0) newY--;
+
+        if (newX !== x || newY !== y) {
+            drawLabyrinthe(canva, canvas);  
+            x = newX;
+            y = newY;
+            drawCharacter(canva, x, y);  
+            verifierVictoire();
+            demarrerChronometre();  
+        }
+    });
+
+
+    document.querySelectorAll(".bouton").forEach(btn => 
+        btn.addEventListener("click", e => {
+            const niveaux = { 
+                facile: 31, moyen: 41, difficile: 61, expert: 81, legendaire: 101 
+            };
+            afficherCanvas(e.target.id, niveaux[e.target.id], niveaux[e.target.id]);
+        })
+    )
+
+
+    //Réinitialiser le localStorage pour un niveau
+    //localStorage.removeItem("facile"); // Par exemple, pour le niveau "facile"
+    // ou global
+    //localStorage.clear();
+    document.getElementById("resetStorage").addEventListener("click", () => {
+    if (confirm("Voulez-vous vraiment réinitialiser les scores ?")) {
+        localStorage.clear(); 
+        alert("Scores réinitialisés !");
+        document.getElementById("score").textContent = "--";
+    }
+});
+
+
+</script>
+</body>
+</html>
